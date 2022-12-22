@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app">
+      <div>{{name}}</div>
+      <span> {{age}} </span>
+    </div>
+    <script src="vue.js"></script>
+    <script>
+      const vm = new Vue({
+        data() {
+          return {
+            name: "伟峰",
+            age: null,
+            arr: [1, 4, 2, 3, ["liu"]],
+          };
+        },
+        el: "app",
+      });
+
+      /* 
+        1.模版引擎  性能差 需要正则匹配 
+        2.采用虚拟do马， 数据变化比较虚拟dom的差异 最后更新需要更新的的地方
+        3.核心就是我们需要 将莫办变成我们的 js语法，通过js语法生成虚拟dom
+      */
+    </script>
+  </body>
+</html>
