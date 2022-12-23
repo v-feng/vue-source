@@ -11,10 +11,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.20.5",
-    "@babel/preset-env": "^7.20.2",
-    "prettier": "2.8.1",
-    "rollup": "^3.7.5",
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
+    "rollup": "^2.61.1",
     "rollup-plugin-babel": "^4.4.0"
+  },
+  "dependencies": {
+    "@rollup/plugin-node-resolve": "^13.0.6"
   }
 }

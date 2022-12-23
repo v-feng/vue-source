@@ -1,4 +1,5 @@
 import { newArrayPrototype } from "./arr";
+import Dep from "./dep";
 
 class Observe {
   constructor(data) {
@@ -26,8 +27,12 @@ class Observe {
 // 闭包 value  //属性劫持
 function defineReactive(target, key, value) {
   observe(value);
+  let dep = new Dep();
   Object.defineProperty(target, key, {
     get() {
+      if (Dep.target) {
+        dep.depend();
+      }
       // 取值的时候
       return value;
     },
@@ -36,6 +41,7 @@ function defineReactive(target, key, value) {
       if (value === newValue) return;
       observe(newValue);
       value = newValue;
+      dep.notify();
     },
   });
 }

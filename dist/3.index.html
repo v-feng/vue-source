@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 
+        1.我们可以模版中的属性怎加一个收集器 dep
+        2.页面渲染的时候我们将渲染逻辑封装到watch中
+        3.让dep记住这个watch.稍后属性变化了可以找到对应dep中存放的 watch 进行重新渲染
+        观察者模式
+     -->
+    <div id="app">
+      <div style="color: red">{{age}}{{age}}{{age}}{{age}}</div>
+      <span style="color: green"> {{name}} {{name}} {{name}} {{name}} </span>
+    </div>
+    <script src="vue.js"></script>
+    <script>
+      const vm = new Vue({
+        data() {
+          return {
+            age: 0,
+            name: "zhufeng",
+            arr: [1, 4, 2, 3, ["liu"]],
+          };
+        },
+        el: "#app",
+      });
+      vm.$nextTick(() => {
+        console.log(app.innerHTML);
+      });
+      vm.name = "laji";
+
+      // vm.$mount("#app");
+      // setTimeout(() => {
+      //   vm.age = "6";
+      //   vm.name = "sdsdsds";
+      //   vm.name = "sdsdsds";
+
+      // }, 1000);
+    </script>
+  </body>
+</html>
