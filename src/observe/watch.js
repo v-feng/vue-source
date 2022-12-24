@@ -62,12 +62,11 @@ function flushCallback() {
   waiting = false;
   cbs.forEach((cb) => cb());
 }
+
 export function nextTick(cb) {
   callbacks.push(cb);
   if (!waiting) {
-    setTimeout(() => {
-      flushCallback();
-    }, 0);
+    Promise.resolve().then(flushCallback);
     waiting = true;
   }
 }

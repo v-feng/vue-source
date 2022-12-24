@@ -14,11 +14,23 @@
         观察者模式
      -->
     <div id="app">
-      <div style="color: red">{{age}}</div>
+      <div style="color: red">{{age}} {{age}}</div>
       <span style="color: green">{{name}} </span>
     </div>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
     <script src="vue.js"></script>
     <script>
+      Vue.mixin({
+        created() {
+          console.log("mixin-created1");
+        },
+      });
+      Vue.mixin({
+        created() {
+          console.log("mixin-created2");
+          this.age;
+        },
+      });
       const vm = new Vue({
         data() {
           return {
@@ -27,19 +39,16 @@
             arr: [1, 4, 2, 3, ["liu"]],
           };
         },
+        created() {
+          console.log("created");
+        },
         el: "#app",
       });
+      console.log(Vue.options);
+      console.log(vm.$options);
 
       vm.age = 18;
       vm.name = "zhufeng ";
-
-      // vm.$mount("#app");
-      // setTimeout(() => {
-      //   vm.age = "6";
-      //   vm.name = "sdsdsds";
-      //   vm.name = "sdsdsds";
-
-      // }, 1000);
     </script>
   </body>
 </html>

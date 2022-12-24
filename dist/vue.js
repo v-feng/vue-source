@@ -4,6 +4,50 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  function mergeOptions(parent, chidren) {
+    var stracs = {};
+    var LIFECYCLE = ["beforeCreate", "created"];
+    LIFECYCLE.forEach(function (hook) {
+      stracs[hook] = function (p, c) {
+        if (c) {
+          if (p) {
+            return p.concat(c);
+          } else {
+            return [c];
+          }
+        } else {
+          return p;
+        }
+      };
+    });
+    var options = {};
+    for (var key in parent) {
+      mergeFiled(key);
+    }
+    for (var _key in chidren) {
+      if (!parent.hasOwnProperty(_key)) {
+        mergeFiled(_key);
+      }
+    }
+    function mergeFiled(key) {
+      // 策略 减少判断逻辑
+      if (stracs[key]) {
+        options[key] = stracs[key](parent[key], chidren[key]);
+      } else {
+        options[key] = chidren[key] || parent[key];
+      }
+    }
+    return options;
+  }
+
+  function initGlobalApi(Vue) {
+    Vue.options = {};
+    Vue.mixin = function (mixin) {
+      this.options = mergeOptions(this.options, mixin);
+      return this;
+    };
+  }
+
   function _iterableToArrayLimit(arr, i) {
     var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"];
     if (null != _i) {
@@ -294,7 +338,6 @@
     var code = codegen(ast);
     code = "with(this){return ".concat(code, "}");
     var render = new Function(code); // 根据代码生成render函数
-
     //  _c('div',{id:'app'},_c('div',{style:{color:'red'}},  _v(_s(vm.name)+'hello'),_c('span',undefined,  _v(_s(age))))
 
     return render;
@@ -414,9 +457,7 @@
   function nextTick(cb) {
     callbacks.push(cb);
     if (!waiting) {
-      setTimeout(function () {
-        flushCallback();
-      }, 0);
+      Promise.resolve().then(flushCallback);
       waiting = true;
     }
   }
@@ -512,6 +553,14 @@
       vm._update(vm._render());
     };
     new Watcher(vm, updateComponent, true);
+  }
+  function callHooks(vm, hook) {
+    var handlers = vm.$options[hook];
+    if (handlers) {
+      handlers.forEach(function (handle) {
+        return handle(vm);
+      });
+    }
   }
 
   // 监听数组变异方法（修改数组本身）  7个
@@ -633,8 +682,10 @@
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
       var vm = this;
-      vm.$options = options; // 将 用户的选项配置 挂到vm实例上
+      vm.$options = mergeOptions(this.constructor.options, options); // 将 用户的选项配置 挂到vm实例上
+      callHooks(vm, "beforeCreate");
       initState(vm);
+      callHooks(vm, "created");
       if (options.el) {
         vm.$mount(options.el); //数据的挂载
       }
@@ -666,6 +717,7 @@
   Vue.prototype.$nextTick = nextTick;
   initLifeCycle(Vue);
   initMixin(Vue);
+  initGlobalApi(Vue);
 
   return Vue;
 
