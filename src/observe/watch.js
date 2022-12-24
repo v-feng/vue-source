@@ -1,4 +1,4 @@
-import Dep from "./dep";
+import Dep, { popTarget, pushTarget } from "./dep";
 
 let id = 0;
 class Watcher {
@@ -9,20 +9,37 @@ class Watcher {
     this.getter = fn;
     this.depsId = new Set();
     this.deps = [];
-    this.get();
+    this.vm = vm;
+    this.lazy = options.lazy;
+    this.dirty = this.lazy;
+    this.lazy ? undefined : this.get();
   }
   get() {
-    Dep.target = this; // 静态属性
-    this.getter();
-    Dep.target = null; // 置空
+    pushTarget(this);
+    let value = this.getter.call(this.vm);
+    popTarget();
+    return value;
   }
-  update() {
-    // console.log("update");
-    // this.get();
-    queueWatch(this);
+  evatelue() {
+    this.value = this.get();
+    this.dirty = false;
   }
+
   run() {
     this.get();
+  }
+  depend() {
+    let i = this.deps.length;
+    while (i--) {
+      this.deps[i].depend();
+    }
+  }
+  update() {
+    if (this.lazy) {
+      this.dirty = true;
+    } else {
+      queueWatch(this);
+    }
   }
   addDep(dep) {
     const id = dep.id;

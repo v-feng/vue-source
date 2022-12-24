@@ -375,7 +375,15 @@
     }]);
     return Dep;
   }();
-  Dep.target = null;
+  var stack = [];
+  function pushTarget(watcher) {
+    stack.push(watcher);
+    Dep.target = watcher;
+  }
+  function popTarget() {
+    stack.pop();
+    Dep.target = stack[stack.length - 1];
+  }
 
   var id = 0;
   var Watcher = /*#__PURE__*/function () {
@@ -387,26 +395,46 @@
       this.getter = fn;
       this.depsId = new Set();
       this.deps = [];
-      this.get();
+      this.vm = vm;
+      this.lazy = options.lazy;
+      this.dirty = this.lazy;
+      this.lazy ? undefined : this.get();
     }
     _createClass(Watcher, [{
       key: "get",
       value: function get() {
-        Dep.target = this; // 静态属性
-        this.getter();
-        Dep.target = null; // 置空
+        pushTarget(this);
+        var value = this.getter.call(this.vm);
+        popTarget();
+        return value;
       }
     }, {
-      key: "update",
-      value: function update() {
-        // console.log("update");
-        // this.get();
-        queueWatch(this);
+      key: "evatelue",
+      value: function evatelue() {
+        this.value = this.get();
+        this.dirty = false;
       }
     }, {
       key: "run",
       value: function run() {
         this.get();
+      }
+    }, {
+      key: "depend",
+      value: function depend() {
+        var i = this.deps.length;
+        while (i--) {
+          this.deps[i].depend();
+        }
+      }
+    }, {
+      key: "update",
+      value: function update() {
+        if (this.lazy) {
+          this.dirty = true;
+        } else {
+          queueWatch(this);
+        }
       }
     }, {
       key: "addDep",
@@ -658,6 +686,9 @@
     if (opts.data) {
       initDate(vm);
     }
+    if (opts.computed) {
+      initComputed(vm);
+    }
   }
   function proxy(vm, target, key) {
     Object.defineProperty(vm, key, {
@@ -677,6 +708,37 @@
       proxy(vm, "_data", key);
     }
     observe(data);
+  }
+  function initComputed(vm) {
+    var computed = vm.$options.computed;
+    var watchers = vm._computedWatchers = {};
+    for (var key in computed) {
+      var userDef = computed[key];
+      var fn = typeof userDef === "function" ? userDef : userDef.get;
+      watchers[key] = new Watcher(vm, fn, {
+        lazy: true
+      });
+      defineComputed(vm, key, userDef);
+    }
+  }
+  function defineComputed(vm, key, userDef) {
+    var setter = userDef.set || function () {};
+    Object.defineProperty(vm, key, {
+      get: createComputedGetter(key),
+      set: setter
+    });
+  }
+  function createComputedGetter(key) {
+    return function () {
+      var watcher = this._computedWatchers[key];
+      if (watcher.dirty) {
+        watcher.evatelue();
+      }
+      if (Dep.target) {
+        watcher.depend();
+      }
+      return watcher.value;
+    };
   }
 
   function initMixin(Vue) {
