@@ -388,17 +388,25 @@
   var id = 0;
   var Watcher = /*#__PURE__*/function () {
     // 不同组件有不同 watcher
-    function Watcher(vm, fn, options) {
+    function Watcher(vm, exprOrfn, options, cb) {
       _classCallCheck(this, Watcher);
       this.id = id++;
+      this.cb = cb;
       this.renderWatcher = options;
-      this.getter = fn;
+      this.user = options.user;
+      if (typeof exprOrfn === "string") {
+        this.getter = function () {
+          return vm[exprOrfn];
+        };
+      } else {
+        this.getter = exprOrfn;
+      }
       this.depsId = new Set();
       this.deps = [];
       this.vm = vm;
       this.lazy = options.lazy;
       this.dirty = this.lazy;
-      this.lazy ? undefined : this.get();
+      this.value = this.lazy ? undefined : this.get();
     }
     _createClass(Watcher, [{
       key: "get",
@@ -417,7 +425,11 @@
     }, {
       key: "run",
       value: function run() {
-        this.get();
+        var oldValue = this.value;
+        var newValue = this.get();
+        if (this.user) {
+          this.cb.call(this.vm, newValue, oldValue);
+        }
       }
     }, {
       key: "depend",
@@ -689,6 +701,9 @@
     if (opts.computed) {
       initComputed(vm);
     }
+    if (opts.watch) {
+      initWatch(vm);
+    }
   }
   function proxy(vm, target, key) {
     Object.defineProperty(vm, key, {
@@ -740,6 +755,25 @@
       return watcher.value;
     };
   }
+  function initWatch(vm) {
+    var watch = vm.$options.watch;
+    for (var key in watch) {
+      var handler = watch[key]; // 字符串 数组 函数
+      if (Array.isArray(handler)) {
+        for (var i = 0; i < handler.length; i++) {
+          createWatch(vm, key, handler[i]);
+        }
+      } else {
+        createWatch(vm, key, handler);
+      }
+    }
+  }
+  function createWatch(vm, key, handler) {
+    if (typeof handler === "string") {
+      handler = vm[handler];
+    }
+    return vm.$watch(key, handler);
+  }
 
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
@@ -780,6 +814,11 @@
   initLifeCycle(Vue);
   initMixin(Vue);
   initGlobalApi(Vue);
+  Vue.prototype.$watch = function (expreOrFn, cb) {
+    new Watcher(this, expreOrFn, {
+      user: true
+    }, cb);
+  };
 
   return Vue;
 
