@@ -3,6 +3,7 @@ import Dep from "./dep";
 
 class Observe {
   constructor(data) {
+    this.dep = new Dep();
     Object.defineProperty(data, "__ob__", {
       value: this,
       enumerable: false,
@@ -24,14 +25,28 @@ class Observe {
     data.forEach((item) => observe(item));
   }
 }
+function depengArray(value) {
+  value.forEach((item) => {
+    item.__ob__?.dep.depend();
+    if (Array.isArray(item)) {
+      depengArray(item);
+    }
+  });
+}
 // 闭包 value  //属性劫持
 function defineReactive(target, key, value) {
-  observe(value);
+  let childOb = observe(value);
   let dep = new Dep();
   Object.defineProperty(target, key, {
     get() {
       if (Dep.target) {
         dep.depend();
+        if (childOb) {
+          childOb.dep.depend();
+          if (Array.isArray(value)) {
+            depengArray(value);
+          }
+        }
       }
       // 取值的时候
       return value;
