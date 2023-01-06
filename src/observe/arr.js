@@ -8,7 +8,7 @@ const methods = [
   "shift",
   "pop",
   "unshift",
-  "reserve",
+  "reverse",
   "sort",
   "splice",
 ];

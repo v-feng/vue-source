@@ -4,22 +4,33 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
-  function mergeOptions(parent, chidren) {
-    var stracs = {};
-    var LIFECYCLE = ["beforeCreate", "created"];
-    LIFECYCLE.forEach(function (hook) {
-      stracs[hook] = function (p, c) {
-        if (c) {
-          if (p) {
-            return p.concat(c);
-          } else {
-            return [c];
-          }
+  var stracs = {};
+  var LIFECYCLE = ["beforeCreate", "created"];
+  LIFECYCLE.forEach(function (hook) {
+    stracs[hook] = function (p, c) {
+      if (c) {
+        if (p) {
+          return p.concat(c);
         } else {
-          return p;
+          return [c];
         }
-      };
-    });
+      } else {
+        return p;
+      }
+    };
+  });
+  stracs.components = function (parentVal, childVal) {
+    console.log(parentVal, childVal);
+    var res = Object.create(parentVal);
+    if (childVal) {
+      for (var key in childVal) {
+        res[key] = childVal[key]; // 返回的是构造的对象 可以拿到父亲原型上的属性，并且将儿子的都拷贝到自己身上
+      }
+    }
+
+    return res;
+  };
+  function mergeOptions(parent, chidren) {
     var options = {};
     for (var key in parent) {
       mergeFiled(key);
@@ -41,10 +52,28 @@
   }
 
   function initGlobalApi(Vue) {
-    Vue.options = {};
+    Vue.options = {
+      _base: Vue
+    };
     Vue.mixin = function (mixin) {
       this.options = mergeOptions(this.options, mixin);
       return this;
+    };
+    Vue.extend = function (options) {
+      function Sub() {
+        var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+        this._init(options);
+      }
+      Sub.prototype = Object.create(Vue.prototype);
+      Sub.prototype.constructor = Sub;
+      Sub.options = mergeOptions(Vue.options, options); // 保存用户传递的选项
+
+      return Sub;
+    };
+    Vue.options.components = {};
+    Vue.component = function (id, definition) {
+      definition = typeof definition === "function" ? definition : Vue.extend(definition);
+      Vue.options.components[id] = definition;
     };
   }
 
@@ -502,6 +531,9 @@
     }
   }
 
+  function isReservedTag(tag) {
+    return ["a", "div", "ul", "li", "p", "span", "button"].includes(tag);
+  }
   function createElementVNode(vm, tag, data) {
     if (data == null) {
       data = {};
@@ -513,19 +545,37 @@
     for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
       children[_key - 3] = arguments[_key];
     }
-    return vnode(vm, tag, key, data, children);
+    if (isReservedTag(tag)) {
+      return vnode(vm, tag, key, data, children);
+    } else {
+      // 创造组件虚拟节点
+      var Ctor = vm.$options.components[tag];
+      return createConponentVnode(vm, tag, key, data, children, Ctor);
+    }
+  }
+  function createConponentVnode(vm, tag, key, data, children, Ctor) {
+    if (_typeof(Ctor) === "object") {
+      Ctor = vm.$options._base.extend(Ctor);
+    }
+    data.hook = {
+      init: function init() {}
+    };
+    return vnode(vm, tag, key, data, children, null, {
+      Ctor: Ctor
+    });
   }
   function createTextVNode(vm, text) {
     return vnode(vm, undefined, undefined, undefined, undefined, text);
   }
-  function vnode(vm, tag, key, data, children, text) {
+  function vnode(vm, tag, key, data, children, text, componentOptions) {
     return {
       vm: vm,
       tag: tag,
       data: data,
       key: key,
       children: children,
-      text: text
+      text: text,
+      componentOptions: componentOptions
     };
   }
   function isSameVnode(vnode1, vnode2) {
@@ -763,7 +813,7 @@
 
   var oldArrayPrototype = Array.prototype;
   var newArrayPrototype = Object.create(oldArrayPrototype);
-  var methods = ["push", "shift", "pop", "unshift", "reserve", "sort", "splice"];
+  var methods = ["push", "shift", "pop", "unshift", "reverse", "sort", "splice"];
   methods.forEach(function (method) {
     newArrayPrototype[method] = function () {
       var _oldArrayPrototype$me;
